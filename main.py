@@ -1,29 +1,28 @@
 import os
-from flask import Flask
-from threading import Thread
-from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler
+import logging
+from telegram.ext import ApplicationBuilder, CommandHandler
 
-# تعريف البورت الذي توفره Render
-port = int(os.environ.get("PORT", 10000))
+# إعدادات الـ Logs لتتمكن من متابعة الأخطاء في Render
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.INFO
+)
 
-app = Flask(__name__)
-
-@app.route('/')
-def home():
-    return "Bot is alive!"
-
-def run_flask():
-    app.run(host='0.0.0.0', port=port)
-
-# ... (باقي كود البوت كما هو)
+# دالة الرد على أمر /start
+async def start(update, context):
+    await update.message.reply_text("أهلاً بك يا هندسة، البوت يعمل الآن بنجاح!")
 
 if __name__ == '__main__':
-    # تشغيل السيرفر ليستقبل الطلبات
-    Thread(target=run_flask).start()
+    # جلب التوكن من إعدادات Render
+    TOKEN = os.environ.get("BOT_TOKEN")
+    
+    # بناء التطبيق
+    application = ApplicationBuilder().token(TOKEN).build()
+    
+    # إضافة أمر الـ Start
+    application.add_handler(CommandHandler("start", start))
     
     # تشغيل البوت
-    BOT_TOKEN = os.environ.get("BOT_TOKEN")
-    application = ApplicationBuilder().token(BOT_TOKEN).build()
-    # ... (باقي إعدادات البوت)
+    print("Bot is running...")
     application.run_polling()
     
