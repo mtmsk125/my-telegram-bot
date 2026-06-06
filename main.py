@@ -6,7 +6,7 @@ from threading import Thread
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes
 
-# إعدادات السيرفر الوهمي لحل مشكلة Port في Render
+# 1. إعداد خادم Flask الوهمي لإرضاء Render
 app = Flask(__name__)
 
 @app.route('/')
@@ -14,9 +14,10 @@ def home():
     return "Bot is running!"
 
 def run_flask():
-    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host='0.0.0.0', port=port)
 
-# إعداد قاعدة البيانات
+# 2. إعداد قاعدة البيانات
 def init_db():
     conn = sqlite3.connect('bot_data.db')
     cursor = conn.cursor()
@@ -26,7 +27,7 @@ def init_db():
 
 init_db()
 
-# القائمة الرئيسية
+# 3. القائمة الرئيسية
 def get_main_menu():
     return InlineKeyboardMarkup([
         [InlineKeyboardButton("🌍 عالم الأوتوكاد والريفت", callback_data='menu_bim')],
@@ -34,6 +35,7 @@ def get_main_menu():
         [InlineKeyboardButton("🤖 اسأل المساعد الذكي", callback_data='tech_solutions')]
     ])
 
+# 4. وظيفة البدء
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     conn = sqlite3.connect('bot_data.db')
@@ -43,10 +45,10 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     conn.close()
     await update.message.reply_text("🏗️ أهلاً بك يا هندسة في منصتك الهندسية!\nاختر الخدمة:", reply_markup=get_main_menu())
 
+# 5. معالج الأزرار
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-    
     if query.data == 'menu_bim':
         await query.edit_message_text("🛠 عالم الأوتوكاد والريفت...", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 رجوع", callback_data='back')]]))
     elif query.data == 'back':
