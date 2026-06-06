@@ -1,9 +1,22 @@
 import os
 import sqlite3
+import logging
+from flask import Flask
+from threading import Thread
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes
 
-# 1. إعداد قاعدة البيانات
+# إعدادات السيرفر الوهمي لحل مشكلة Port في Render
+app = Flask(__name__)
+
+@app.route('/')
+def home():
+    return "Bot is running!"
+
+def run_flask():
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))
+
+# إعداد قاعدة البيانات
 def init_db():
     conn = sqlite3.connect('bot_data.db')
     cursor = conn.cursor()
@@ -13,7 +26,7 @@ def init_db():
 
 init_db()
 
-# 2. القائمة الرئيسية
+# القائمة الرئيسية
 def get_main_menu():
     return InlineKeyboardMarkup([
         [InlineKeyboardButton("🌍 عالم الأوتوكاد والريفت", callback_data='menu_bim')],
@@ -21,19 +34,15 @@ def get_main_menu():
         [InlineKeyboardButton("🤖 اسأل المساعد الذكي", callback_data='tech_solutions')]
     ])
 
-# 3. وظيفة البدء
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # تسجيل المستخدم
     user_id = update.effective_user.id
     conn = sqlite3.connect('bot_data.db')
     cursor = conn.cursor()
     cursor.execute('INSERT OR IGNORE INTO users (user_id) VALUES (?)', (user_id,))
     conn.commit()
     conn.close()
-    
     await update.message.reply_text("🏗️ أهلاً بك يا هندسة في منصتك الهندسية!\nاختر الخدمة:", reply_markup=get_main_menu())
 
-# 4. معالج الأزرار
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -43,10 +52,13 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif query.data == 'back':
         await query.edit_message_text("🏗️ أهلاً بك يا هندسة في منصتك الهندسية!\nاختر الخدمة:", reply_markup=get_main_menu())
 
-# 5. تشغيل البوت
 if __name__ == '__main__':
+    # تشغيل Flask في خلفية منفصلة
+    Thread(target=run_flask).start()
+    
+    # تشغيل البوت
     BOT_TOKEN = os.environ.get("BOT_TOKEN")
-    app = ApplicationBuilder().token(BOT_TOKEN).build()
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(CallbackQueryHandler(button_handler))
-    app.run_polling()
+    application = ApplicationBuilder().token(BOT_TOKEN).build()
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CallbackQueryHandler(button_handler))
+    application.run_polling()
